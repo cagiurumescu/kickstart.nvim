@@ -234,6 +234,14 @@ end
 local rtp = vim.opt.rtp
 rtp:prepend(lazypath)
 
+--[[
+NOTE: Set the config path to enable the copilot adapter to work.
+It will search the following paths for a token:
+  - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
+  - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
+--]]
+vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
+
 -- [[ Configure and install plugins ]]
 --
 --  To check the current status of your plugins, run
@@ -990,6 +998,43 @@ require('lazy').setup({
   -- Or use telescope!
   -- In normal mode type `<space>sh` then write `lazy.nvim-plugin`
   -- you can continue same window with `<space>sr` which resumes last telescope search
+  {
+    "olimorris/codecompanion.nvim",
+    dependencies = {
+      { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
+      { "nvim-lua/plenary.nvim" },
+      -- Test with blink.cmp
+      {
+        "saghen/blink.cmp",
+        lazy = false,
+        version = "*",
+        opts = {
+          keymap = {
+            preset = "enter",
+            ["<S-Tab>"] = { "select_prev", "fallback" },
+            ["<Tab>"] = { "select_next", "fallback" },
+          },
+          cmdline = { sources = { "cmdline" } },
+          sources = {
+            default = { "lsp", "path", "buffer", "codecompanion" },
+          },
+        },
+      },
+      -- Test with nvim-cmp
+      -- { "hrsh7th/nvim-cmp" },
+    },
+    opts = {
+      --Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
+      strategies = {
+        --NOTE: Change the adapter as required
+        chat = { adapter = "copilot" },
+        inline = { adapter = "copilot" },
+      },
+      opts = {
+        log_level = "DEBUG",
+      },
+    },
+  },
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
@@ -1011,6 +1056,15 @@ require('lazy').setup({
     },
   },
 })
+
+-- Setup Tree-sitter
+local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
+if ts_status then
+  treesitter.setup({
+    ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
+    highlight = { enable = true },
+  })
+end
 
 -- The line beneath this is called `modeline`. See `:help modeline`
 -- vim: ts=2 sts=2 sw=2 et
