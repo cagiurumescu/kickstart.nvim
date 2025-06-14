@@ -102,7 +102,7 @@ vim.g.have_nerd_font = false
 vim.o.number = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.o.relativenumber = true
+vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -243,7 +243,11 @@ It will search the following paths for a token:
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
 --]]
-vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand("~/.config")
+-- for Linux
+vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand('~/.config')
+-- for Windows with Neovim .msi and MSYS2 git and mingw64 terminal
+--vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand('~/AppData/Local/nvim')
+
 
 -- [[ Configure and install plugins ]]
 --
@@ -1117,11 +1121,12 @@ require('lazy').setup({
               },
             },
           })
-      end,
+        end,
       },
       strategies = {
         --NOTE: Change the adapter as required -- was copilot
         -- see also ~/.local/share/nvim/lazy/codecompanion.nvim/lua/codecompanion/adapters/anthropic.lua for key location
+        -- see also ~/AppData/Local/nvim-data/lazy/codecompanion.nvim/lua/codecompanion/adapters/anthropic.lua for key location
         chat = { adapter = 'anthropic' },
         inline = { adapter = 'anthropic' },
         agent = { adapter = 'anthropic' },
