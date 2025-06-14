@@ -243,11 +243,13 @@ It will search the following paths for a token:
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
 --]]
--- for Linux
-vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand('~/.config')
--- for Windows with Neovim .msi and MSYS2 git and mingw64 terminal
---vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand('~/AppData/Local/nvim')
-
+if vim.fn.has('win32') > 0 then
+  -- for Windows with Neovim .msi and MSYS2 git and mingw64 terminal
+  vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand('~/AppData/Local/nvim')
+else
+  -- for Linux
+  vim.env["CODECOMPANION_TOKEN_PATH"] = vim.fn.expand('~/.config')
+end
 
 -- [[ Configure and install plugins ]]
 --
