@@ -122,7 +122,9 @@ end)
 vim.o.breakindent = true
 
 -- Save undo history
-vim.o.undofile = true
+vim.o.undofile = false
+vim.o.backup = false
+vim.o.directory = "~/.vim/swp//"
 
 -- Case-insensitive searching UNLESS \C or one or more capital letters in the search term
 vim.o.ignorecase = true
@@ -237,6 +239,7 @@ rtp:prepend(lazypath)
 --[[
 NOTE: Set the config path to enable the copilot adapter to work.
 It will search the following paths for a token:
+  - can have empty file when adapter is not copilot
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/hosts.json"
   - "$CODECOMPANION_TOKEN_PATH/github-copilot/apps.json"
 --]]
@@ -999,39 +1002,132 @@ require('lazy').setup({
   -- In normal mode type `<space>sh` then write `lazy.nvim-plugin`
   -- you can continue same window with `<space>sr` which resumes last telescope search
   {
-    "olimorris/codecompanion.nvim",
+    'olimorris/codecompanion.nvim',
+    event = { 'InsertEnter', 'CmdlineEnter' },
     dependencies = {
-      { "nvim-treesitter/nvim-treesitter", build = ":TSUpdate" },
-      { "nvim-lua/plenary.nvim" },
+      { 'nvim-treesitter/nvim-treesitter', build = ':TSUpdate' },
+      { 'nvim-lua/plenary.nvim' },
       -- Test with blink.cmp
       {
-        "saghen/blink.cmp",
+        'saghen/blink.cmp',
         lazy = false,
-        version = "*",
+        version = '*',
         opts = {
           keymap = {
-            preset = "enter",
-            ["<S-Tab>"] = { "select_prev", "fallback" },
-            ["<Tab>"] = { "select_next", "fallback" },
+            preset = 'enter',
+            ['<S-Tab>'] = { 'select_prev', 'fallback' },
+            ['<Tab>'] = { 'select_next', 'fallback' },
           },
-          cmdline = { sources = { "cmdline" } },
+          cmdline = { sources = { 'cmdline' } },
           sources = {
-            default = { "lsp", "path", "buffer", "codecompanion" },
+            default = { 'lsp', 'path', 'buffer', 'codecompanion' },
           },
         },
       },
       -- Test with nvim-cmp
-      -- { "hrsh7th/nvim-cmp" },
+      -- { 'hrsh7th/nvim-cmp' },
     },
     opts = {
       --Refer to: https://github.com/olimorris/codecompanion.nvim/blob/main/lua/codecompanion/config.lua
+      prompt_library = {
+        ['Code Expert'] = {
+          strategy = 'chat',
+          description = 'Get some special advice for your code',
+          opts = {
+            mapping = '<LocalLeader>ce',
+            modes = { 'v' },
+            short_name = 'expert',
+            auto_submit = true,
+            stop_context_insertion = true,
+            user_prompt = true,
+          },
+          prompts = {
+            {
+              role = 'system',
+              content = function(context)
+                return 'I want you to act as a senior '
+                  .. context.filetype
+                  .. ' developer. I will ask you specific questions and I want you to return concise explanations and codeblock examples.'
+              end,
+            },
+            {
+              role = 'user',
+              content = function(context)
+                local text = require('codecompanion.helpers.actions').get_code(
+                  context.start_line,
+                  context.end_line
+                )
+                return 'I have the following code:\n\n```'
+                  .. context.filetype
+                  .. '\n'
+                  .. text
+                  .. '\n```\n\n'
+              end,
+              opts = {
+                contains_code = true,
+              },
+            },
+          },
+        },
+        ['techwriter'] = {
+          strategy = 'chat',
+          description = 'Get advice of my writing',
+          opts = {
+            mapping = '<LocalLeader>tw',
+            modes = { 'v' },
+            short_name = 'techwriter',
+            auto_submit = true,
+            stop_context_insertion = true,
+            user_prompt = true,
+          },
+          prompts = {
+            {
+              role = 'system',
+              content = function(context)
+                return 'I want you to act as a technical writer. I will ask you to return rephrased paragraph for me.'
+              end,
+            },
+            {
+              role = 'user',
+              content = function(context)
+                local text = require('codecompanion.helpers.actions').get_code(
+                  context.start_line,
+                  context.end_line
+                )
+                return 'I have the following pragraph:\n\n```' .. 'txt' .. '\n' .. text .. '\n```\n\n'
+              end,
+              opts = {},
+            },
+          },
+        },
+      },
+      adapters = {
+        copilot = function()
+          return require('codecompanion.adapters').extend('copilot', {
+            schema = {
+              model = {
+                -- default = 'claude-3-7-sonnet-20250219', -- do not work
+                -- default = 'claude-3-7-sonnet-20250219-v1:0', -- do not work
+                default = 'claude-3.7-sonnet',
+                -- default = 'claude-3.5-sonnet',
+                -- default = 'o1',  -- not tested
+                -- default = 'o3-mini' -- not tested
+                -- default = 'claude-3.7-sonnet-thought',
+                -- default = 'gemini-2.0-flash'
+              },
+            },
+          })
+      end,
+      },
       strategies = {
-        --NOTE: Change the adapter as required
-        chat = { adapter = "copilot" },
-        inline = { adapter = "copilot" },
+        --NOTE: Change the adapter as required -- was copilot
+        -- see also ~/.local/share/nvim/lazy/codecompanion.nvim/lua/codecompanion/adapters/anthropic.lua for key location
+        chat = { adapter = 'anthropic' },
+        inline = { adapter = 'anthropic' },
+        agent = { adapter = 'anthropic' },
       },
       opts = {
-        log_level = "DEBUG",
+        log_level = 'DEBUG',
       },
     },
   },
@@ -1057,11 +1153,14 @@ require('lazy').setup({
   },
 })
 
+vim.cmd.colorscheme('murphy')
+vim.cmd('au BufRead,BufNewFile *.xdc set filetype=tcl')
+vim.o.expandtab = true
 -- Setup Tree-sitter
-local ts_status, treesitter = pcall(require, "nvim-treesitter.configs")
+local ts_status, treesitter = pcall(require, 'nvim-treesitter.configs')
 if ts_status then
   treesitter.setup({
-    ensure_installed = { "lua", "markdown", "markdown_inline", "yaml" },
+    ensure_installed = { 'lua', 'markdown', 'markdown_inline', 'yaml' },
     highlight = { enable = true },
   })
 end
